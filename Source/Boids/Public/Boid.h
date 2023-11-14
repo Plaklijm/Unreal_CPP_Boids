@@ -24,7 +24,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	static FVector3d GetPosition() { return GetPosition(); }
+	//FVector3d GetPosition() { return GetPosition(); }
 
 	void SetVelocity(const FVector3d& newVelocity) const { Root->ComponentVelocity = newVelocity; }
 

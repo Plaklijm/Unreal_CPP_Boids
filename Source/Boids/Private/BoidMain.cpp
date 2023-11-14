@@ -61,9 +61,9 @@ FVector3d ABoidMain::CalcSeperation(ABoid* currentBoid)
 		if (b != currentBoid)
 		{
 			// Using DistSquared for a bit of performance optimization (we dont need it to be squared to know the dist)
-			if (FVector3d::DistSquared(b->GetPosition(), currentBoid->GetPosition()) < 250)
+			//if (FVector3d::DistSquared(b->GetPosition(), currentBoid->GetPosition()) < 250)
 			{
-				c -= b->GetPosition() - currentBoid->GetPosition();
+				//c -= b->GetPosition() - currentBoid->GetPosition();
 			}
 		}
 	}
@@ -97,13 +97,14 @@ FVector3d ABoidMain::CalcCohesion(ABoid* currentBoid)
 		if (b != currentBoid)
 		{
 			// Calculate PercievedCenter by adding all the positions of the boids minus the current one
-			PercievedCenter += currentBoid->GetPosition();
+			//PercievedCenter += currentBoid->GetPosition();
 		}
 	}
 
 	PercievedCenter = PercievedCenter / BoidList.Num() - 1;
 
 	// Move
-	return (PercievedCenter - currentBoid->GetPosition()) / 100;
+	//return (PercievedCenter - currentBoid->GetPosition()) / 100;
+	return FVector3d::ZeroVector;
 }
 
