@@ -2,6 +2,7 @@
 
 #include "Boids/Public/BoidMain.h"
 #include "Boids/Public/Boid.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
 ABoidMain::ABoidMain()
@@ -18,93 +19,127 @@ void ABoidMain::BeginPlay()
 
 	for (int i = 0; i < NumOfBoids; ++i)
 	{
-		ABoid* boidToAdd = GetWorld()->SpawnActor<ABoid>();
+		// Spawn a new Boid inside a boundingbox of the BoidObject type (this is the blueprint object set in the inspector)
+		ABoid* boidToAdd = GetWorld()->SpawnActor<ABoid>(BoidObject);
+		boidToAdd->SetActorLocation(UKismetMathLibrary::RandomPointInBoundingBox(GetActorLocation(), BoundingBoxExtends));
+		boidToAdd->SetVelocity(FMath::VRand() * 10);
 		BoidList.Add(boidToAdd);
 	}
-	
-	// Init Positions()
-	
 }
 
 // Called every frame
 void ABoidMain::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	// update boid positions
 
+	// Draw the BoundingBox
+	DrawDebugBox(GetWorld(), GetActorLocation(), BoundingBoxExtends, FColor::Red);
+
+	// update boid positions
 	// FVector3d Stores in doubles, so it is higher in accuracy (more memory but worth it for Position Data)
-	FVector3d v1,v2,v3;
+	FVector3d v1 = FVector::ZeroVector, v2 = FVector::ZeroVector, v3 = FVector::ZeroVector, v4 = FVector::ZeroVector;
 
 	// Foreach loop in C++
 	for (auto b : BoidList)
 	{
-		v1 = CalcCohesion(b);
-		v2 = CalcSeperation(b);
-		v3 = CalcAlignment(b);
+		v1 = CalcAlignment(b);
+		v2 = CalcCohesion(b);
+		v3 = CalcSeperation(b);
+		v4 = CalcReturnVector(b);
 
-		b->SetVelocity(v1 + v2 + v3);
+
+		b->SetVelocity(b->GetVelocity() + v1 + v2 + v3);
+		FVector3d ClampedVel = (b->GetVelocity() / b->GetVelocity().Length()) * MaxSpeed;
+		FVector3d Location = b->GetActorLocation() + ClampedVel * DeltaTime * SpeedMultiplier;
+		b->SetActorLocation(Location);
 	}
-}
-
-void ABoidMain::UpdateBoidPosition()
-{
-	FVector3f v1,v2,v3;
-	ABoid b;
 }
 
 FVector3d ABoidMain::CalcSeperation(ABoid* currentBoid)
 {
 	FVector3d c = FVector3d::ZeroVector;
 	
-	for (auto b : BoidList)
+	for (const auto b : BoidList)
 	{
 		if (b != currentBoid)
 		{
-			// Using DistSquared for a bit of performance optimization (we dont need it to be squared to know the dist)
-			//if (FVector3d::DistSquared(b->GetPosition(), currentBoid->GetPosition()) < 250)
+			if (FVector3d::Dist(b->GetActorLocation(), currentBoid->GetActorLocation()) < ProtectedRange)
 			{
-				//c -= b->GetPosition() - currentBoid->GetPosition();
+				DrawDebugLine(GetWorld(), b->GetActorLocation(), currentBoid->GetActorLocation(), FColor::Green);
+				c += currentBoid->GetActorLocation() - b->GetActorLocation();
 			}
 		}
 	}
 
-	return c;
+	return c * AvoidFactor;
 }
 
 FVector3d ABoidMain::CalcAlignment(ABoid* currentBoid)
 {
-	FVector3d PercievedVelocity;
-
+	FVector3d PercievedVelocity = FVector::ZeroVector;
+	int NeighbourCount = 0;
+	
 	for (auto b : BoidList)
 	{
 		if (b != currentBoid)
 		{
-			PercievedVelocity += b->GetVelocity();
+			if (FVector3d::Dist(b->GetActorLocation(), currentBoid->GetActorLocation()) < VisualRange)
+			{
+				PercievedVelocity = PercievedVelocity + b->GetVelocity();
+				NeighbourCount += 1;
+			}
 		}
 	}
 
-	PercievedVelocity /= BoidList.Num() - 1;
+	if (NeighbourCount > 0)
+	{
+		PercievedVelocity = PercievedVelocity / NeighbourCount;
+	}
 
-	return (PercievedVelocity - currentBoid->GetVelocity()) / 8;
+	return (PercievedVelocity - currentBoid->GetVelocity()) * MatchFactor;
 }
 
 FVector3d ABoidMain::CalcCohesion(ABoid* currentBoid)
 {
-	FVector3d PercievedCenter;
+	FVector3d PercievedCenter = FVector::ZeroVector;
+	int NeighbourCount = 0;
 
 	for (auto b : BoidList)
 	{
 		if (b != currentBoid)
 		{
-			// Calculate PercievedCenter by adding all the positions of the boids minus the current one
-			//PercievedCenter += currentBoid->GetPosition();
+			if (FVector3d::Dist(b->GetActorLocation(), currentBoid->GetActorLocation()) < VisualRange)
+			{
+				// Calculate PercievedCenter by adding all the positions of the boids minus the current one
+				PercievedCenter = PercievedCenter + b->GetActorLocation();
+				NeighbourCount += 1;
+			}
 		}
+	}
+
+	if (NeighbourCount > 0)
+	{
+		PercievedCenter = PercievedCenter/NeighbourCount;
 	}
 
 	PercievedCenter = PercievedCenter / BoidList.Num() - 1;
 
 	// Move
-	//return (PercievedCenter - currentBoid->GetPosition()) / 100;
-	return FVector3d::ZeroVector;
+	return (PercievedCenter - currentBoid->GetActorLocation()) * CenteringFactor;
+}
+
+FVector3d ABoidMain::CalcReturnVector(ABoid* currentBoid)
+{
+	// The min value is origin - extent, max is origin + extent.
+	FVector3f min = GetActorLocation() - BoundingBoxExtends;
+	UKismetMathLibrary::MakeBox(, GetActorLocation() + BoundingBoxExtends);
+	FVector3d ReturnVec;
+
+	if (currentBoid->GetActorLocation().X )
+	{
+		
+	}
+		
+	return ReturnVec;
 }
 

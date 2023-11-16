@@ -28,14 +28,38 @@ public:
 private:
 	UPROPERTY(EditAnywhere)
 	int NumOfBoids;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<ABoid> BoidObject;
+
+	UPROPERTY(EditAnywhere)
+	FVector3d BoundingBoxExtends;
+
+	UPROPERTY(EditAnywhere)
+	float SpeedMultiplier;
+
+	UPROPERTY(EditAnywhere)
+	float ProtectedRange;
+
+	UPROPERTY(EditAnywhere)
+	float VisualRange;
+
+	UPROPERTY(EditAnywhere)
+	float AvoidFactor;
+
+	UPROPERTY(EditAnywhere)
+	float MatchFactor;
+
+	UPROPERTY(EditAnywhere)
+	float CenteringFactor;
+
+	UPROPERTY(EditAnywhere)
+	float MaxSpeed;
 	
 	UPROPERTY(VisibleAnywhere)
 	TArray<ABoid*> BoidList;
 	
 private:
-	UFUNCTION()
-	void UpdateBoidPosition();
-
 	UFUNCTION()
 	FVector3d CalcSeperation(ABoid* currentBoid);
 
@@ -45,4 +69,6 @@ private:
 	UFUNCTION()
 	FVector3d CalcCohesion(ABoid* currentBoid);
 
+	UFUNCTION()
+	FVector3d CalcReturnVector(ABoid* currentBoid);
 };
