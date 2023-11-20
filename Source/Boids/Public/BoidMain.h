@@ -54,7 +54,13 @@ private:
 	float CenteringFactor;
 
 	UPROPERTY(EditAnywhere)
+	float ReturnSpeed;
+	
+	UPROPERTY(EditAnywhere)
 	float MaxSpeed;
+
+	UPROPERTY(EditAnywhere)
+	bool EnableDebugView;
 	
 	UPROPERTY(VisibleAnywhere)
 	TArray<ABoid*> BoidList;
